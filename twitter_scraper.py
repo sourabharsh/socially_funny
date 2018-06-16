@@ -1,11 +1,13 @@
 import json
 import re
 import time
-
+import random
 import requests
 from bs4 import BeautifulSoup
 from termcolor import colored
 from elastic import Elastic 
+import traceback
+
 class Twitter_Scraper(object):
     
     def __init__(self):
@@ -86,34 +88,43 @@ class Twitter_Scraper(object):
         # Start scrolling through the twitter timeline pages
         all_ids  =    set()
         max_position  = 'TWEET--'
-        time_delay = 5
-        time_error_delay = 15*60     # 15 minutes delay 
+        #time_delay =  0
+        #time_error_delay = 0 
         
         while True:
             tweets,  min_position = self.get_tweet_ids(max_position= max_position)
             
             # Old min_position becomes the new max-position
             if tweets and min_position:
+                self.store_data(tweets, guest_id, auth_token, session,  "twitter", "tweet" )
                 max_position = min_position
+
                 
-                # Run over each tweet and get all the info about it
-                for tweet_id in tweets:
+    def store_data(self, tweets, guest_id, auth_token, session, index="index", data_type="type"):
+            elastic = Elastic()
+            
+            for tweet_id in tweets:
+                try:
                     tweet_json = self.tweet_details(tweet_id, tweets[tweet_id], guest_id, auth_token, session)  
-                    #print(json.dumps(tweet_json, indent=4,sort_keys=True))
-                    print("_______________________________________________________________________") 
-                    user_json  = tweet_json.pop('user')      # separate user and tweet details
-
-                    print(json.dumps(user_json, indent=4, sort_keys=True))
-                    print("_______________________________________________________________________") 
-                    print(json.dumps(tweet_json, indent=4, sort_keys=True)) 
-                    elastic = Elastic()
-                    elastic.store_user_data(user_json, "twitter", "tweet")
-                    elastic.store_tweet(tweet_json, "twitter", "tweet")
-                    time.sleep(time_delay)
-
-                    # Returning from the main() now
-                    return 0 
                     
+                    # Check if it contains a video or not 
+                    try:
+                        video_info = tweet_json["extended_entities"]["media"][0]["video_info"]
+                    except KeyError as e:
+                        print("No video found in ", tweet_id)
+                        continue
+                    
+                    user_json  = tweet_json.pop('user')      # separate user and tweet details
+                
+                    elastic.store_user_data(user_json, index, data_type)
+                    elastic.store_tweet(tweet_json, index, data_type)
+                    time.sleep(random.random()*5)
+                except Exception as e:
+                    print("Error in handling %s :   %s"%(tweet_id, e))
+                    print(traceback.format_exc())
+
+
+
                     
     
     

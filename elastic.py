@@ -42,40 +42,39 @@ class Elastic(object):
         
         except Exception as e:
             print("Error in storing user data in elasticsearch %s"%e)
+            print("user_json", json.dumps(user_json, indent=4, sort_keys=True) )
             print(traceback.format_exc())
             print(sys.exc_info()[0])
             
     
     
     def store_tweet(self, tweet_json, index= "index2", type= "tweet"):
+        try:
+            tweet_id = tweet_json["id"]
+            tweet_doc = {
+                    "type" : "tweet",
+                    "url" : tweet_json['entities']["media"][0]["expanded_url"],
+                    "created_at": Elastic.get_timestamp(tweet_json["created_at"])    ,
+                    "duration_millis": tweet_json["extended_entities"]["media"][0]["video_info"]["duration_millis"],
+                    "variants": tweet_json["extended_entities"]["media"][0]["video_info"]['variants'],
+                    "favorite_count":  tweet_json["favorite_count"],
+                    "full_text": tweet_json['full_text'], 
+                    "id": tweet_json['id'],
+                    "id_str": tweet_json["id_str"],
+                    "lang": tweet_json["lang"],
+                    "possibly_sensitive": tweet_json["possibly_sensitive"],
+                    "possibly_sensitive_appealable": tweet_json["possibly_sensitive_appealable"],
+                    "possibly_sensitive_editable": tweet_json["possibly_sensitive_editable"],
+                    "reply_count": tweet_json["reply_count"] ,
+                    "retweet_count": tweet_json["retweet_count"]
+                    }
         
-        tweet_id = tweet_json["id"]
-        tweet_doc = {
-                "type" : "tweet",
-                "url" : tweet_json['entities']["media"][0]["expanded_url"],
-                "created_at": Elastic.get_timestamp(tweet_json["created_at"])    ,
-                "duration_millis": tweet_json["extended_entities"]["media"][0]["video_info"]["duration_millis"],
-                "variants": tweet_json["extended_entities"]["media"][0]["video_info"]['variants'],
-                "favorite_count":  tweet_json["favorite_count"],
-                "full_text": tweet_json['full_text'], 
-                "id": tweet_json['id'],
-                "id_str": tweet_json["id_str"],
-                "lang": tweet_json["lang"],
-                "possibly_sensitive": tweet_json["possibly_sensitive"],
-                "possibly_sensitive_appealable": tweet_json["possibly_sensitive_appealable"],
-                "possibly_sensitive_editable": tweet_json["possibly_sensitive_editable"],
-                "reply_count": tweet_json["reply_count"] ,
-                "retweet_count": tweet_json["retweet_count"]
-                }
-
-        
-        try:        
             res = self.es.index(index= index, doc_type= type, id = tweet_id, body= tweet_doc)
             print("Tweet: %s successfully %s  in elasticsearch"%(tweet_id, res['result']))
         
         except Exception as e:
             print("Error in storing Tweet data in elasticsearch %s"%e)
-            print(json.dumps(tweet_doc, indent=4, sort_keys=True))
+            print(json.dumps(tweet_json, indent=4, sort_keys=True))
             print(traceback.format_exc())
             print(sys.exc_info()[0])
         
