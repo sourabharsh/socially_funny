@@ -9,6 +9,7 @@ class Elastic(object):
     def store_user_data(self, user_json, index='index2', doc_type='tweet'):
         screen_name = user_json['screen_name']
         user_doc =  {
+            "type" : "user",
             "business_profile_state": user_json['business_profile_state'],
             "created_at": user_json['created_at'],
             "description": user_json['description'],
@@ -42,6 +43,7 @@ class Elastic(object):
         
         tweet_id = tweet_json["id"]
         tweet_doc = {
+                "type" : "tweet",
                 "url" : tweet_json['entities']["media"][0]["expanded_url"],
                 "created_at": tweet_json["created_at"],
                 "duration_millis": tweet_json["extended_entities"]["media"][0]["video_info"]["duration_millis"],
