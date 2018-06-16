@@ -1,7 +1,7 @@
 from elasticsearch import Elasticsearch
 import traceback
 import sys
-
+import json
 class Elastic(object):
     
     def __init__(self, hosts=["127.0.0.1"]):
@@ -39,8 +39,10 @@ class Elastic(object):
         
         except Exception as e:
             print("Error in storing user data in elasticsearch %s"%e)
+            print(json.dumps(user_doc, indent=4, sort_keys=True))
             print(traceback.format_exc())
             print(sys.exc_info()[0])
+            
     
     
     def store_tweet(self, tweet_json, index= "index2", type= "tweet"):
@@ -63,6 +65,7 @@ class Elastic(object):
                 "reply_count": tweet_json["reply_count"] ,
                 "retweet_count": tweet_json["retweet_count"]
                 }
+
         
         try:        
             res = self.es.index(index= index, doc_type= type, id = tweet_id, body= tweet_doc)
@@ -70,6 +73,7 @@ class Elastic(object):
         
         except Exception as e:
             print("Error in storing Tweet data in elasticsearch %s"%e)
+            print(json.dumps(tweet_doc, indent=4, sort_keys=True))
             print(traceback.format_exc())
             print(sys.exc_info()[0])
         
