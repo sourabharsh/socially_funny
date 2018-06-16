@@ -5,7 +5,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from termcolor import colored
-
+from elastic import Elastic 
 class Twitter_Scraper(object):
     
     def __init__(self):
@@ -78,7 +78,8 @@ class Twitter_Scraper(object):
         req  = session.get(twitter_url, headers = agent_header)
         cookies = session.cookies.get_dict() 
         guest_id  = str(cookies['guest_id'])
-        print('guest_id:    ', guest_id)
+        #print('guest_id:    ', guest_id)
+        print("Recieved guest id")
 
         auth_token = self.auth_token(session)
         
@@ -98,13 +99,16 @@ class Twitter_Scraper(object):
                 # Run over each tweet and get all the info about it
                 for tweet_id in tweets:
                     tweet_json = self.tweet_details(tweet_id, tweets[tweet_id], guest_id, auth_token, session)  
-                    print(json.dumps(tweet_json, indent=4,sort_keys=True))
+                    #print(json.dumps(tweet_json, indent=4,sort_keys=True))
                     print("_______________________________________________________________________") 
                     user_json  = tweet_json.pop('user')      # separate user and tweet details
 
                     print(json.dumps(user_json, indent=4, sort_keys=True))
                     print("_______________________________________________________________________") 
                     print(json.dumps(tweet_json, indent=4, sort_keys=True)) 
+                    elastic = Elastic()
+                    elastic.store_user_data(user_json, "twitter", "tweet")
+                    elastic.store_tweet(tweet_json, "twitter", "tweet")
                     time.sleep(time_delay)
 
                     # Returning from the main() now
@@ -127,13 +131,13 @@ class Twitter_Scraper(object):
         if req_js.status_code == 200:
             auth_str = re.search(r'BEARER_TOKEN:".*?"', req_js.text).group(0) 
             auth_token = auth_str.lstrip("BEARER_TOKEN:").strip('"')
-            print('auth_token:  ', auth_token)
+            #print('auth_token:  ', auth_token)
             return auth_token
         else:
             print("No Authorization Token Found")
             return 
 
-
+    
     
 
     def tweet_details(self, tweet_id, user_id, guest_id, auth_token, session):
