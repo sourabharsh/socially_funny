@@ -1,8 +1,11 @@
-import requests
 import json
-from bs4 import BeautifulSoup
 import re
 import time
+
+import requests
+from bs4 import BeautifulSoup
+from termcolor import colored
+
 class Twitter_Scraper(object):
     
     def __init__(self):
@@ -94,11 +97,20 @@ class Twitter_Scraper(object):
                 
                 # Run over each tweet and get all the info about it
                 for tweet_id in tweets:
-                    tweet_info = self.tweet_details(tweet_id, tweets[tweet_id], guest_id, auth_token, session)  
-                    tweet_info_json = json.loads(tweet_info)
-                    print(json.dumps(tweet_info_json, indent=4,sort_keys=True))
+                    tweet_json = self.tweet_details(tweet_id, tweets[tweet_id], guest_id, auth_token, session)  
+                    print(json.dumps(tweet_json, indent=4,sort_keys=True))
+                    print("_______________________________________________________________________") 
+                    user_json  = tweet_json.pop('user')      # separate user and tweet details
+
+                    print(json.dumps(user_json, indent=4, sort_keys=True))
+                    print("_______________________________________________________________________") 
+                    print(json.dumps(tweet_json, indent=4, sort_keys=True)) 
                     time.sleep(time_delay)
-                    break
+
+                    # Returning from the main() now
+                    return 0 
+                    
+                    
     
     
     
@@ -168,14 +180,11 @@ class Twitter_Scraper(object):
         req = session.get(url, headers=headers, params=querystring)
 
         if req.status_code == 200:
-            # Define all the attribute here 
-            tweet_json = req.text
-            return tweet_json
-            
+            return(json.loads(req.text))        # Returning the tweet in json format     
+             
 
 
         
 if __name__ == "__main__":
     ts = Twitter_Scraper()
     ts.main()
-
