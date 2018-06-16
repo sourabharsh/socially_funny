@@ -2,7 +2,8 @@ from elasticsearch import Elasticsearch
 import traceback
 import sys
 import json
-import dateparser
+import time 
+
 
 class Elastic(object):
     
@@ -15,7 +16,7 @@ class Elastic(object):
         user_doc =  {
             "type" : "user",
             "business_profile_state": user_json['business_profile_state'],
-            "created_at": user_json['created_at'],
+            "created_at": Elastic.get_timestamp(user_json['created_at']) ,
             "description": user_json['description'],
             "fast_followers_count":  user_json['fast_followers_count'],
             "favourites_count": user_json['favourites_count'],
@@ -41,7 +42,6 @@ class Elastic(object):
         
         except Exception as e:
             print("Error in storing user data in elasticsearch %s"%e)
-            print(json.dumps(user_doc, indent=4, sort_keys=True))
             print(traceback.format_exc())
             print(sys.exc_info()[0])
             
@@ -53,7 +53,7 @@ class Elastic(object):
         tweet_doc = {
                 "type" : "tweet",
                 "url" : tweet_json['entities']["media"][0]["expanded_url"],
-                "created_at": tweet_json["created_at"]    ,
+                "created_at": Elastic.get_timestamp(tweet_json["created_at"])    ,
                 "duration_millis": tweet_json["extended_entities"]["media"][0]["video_info"]["duration_millis"],
                 "variants": tweet_json["extended_entities"]["media"][0]["video_info"]['variants'],
                 "favorite_count":  tweet_json["favorite_count"],
@@ -79,3 +79,11 @@ class Elastic(object):
             print(traceback.format_exc())
             print(sys.exc_info()[0])
         
+
+
+    @staticmethod
+    def get_timestamp(time_str):
+        f = "%a %b %d %H:%M:%S %z %Y"
+        time_parsed = time.strptime(time_str, f)
+        return(time.mktime(time_parsed))
+
