@@ -2,6 +2,8 @@ from elasticsearch import Elasticsearch
 import traceback
 import sys
 import json
+import dateparser
+
 class Elastic(object):
     
     def __init__(self, hosts=["127.0.0.1"]):
@@ -13,7 +15,7 @@ class Elastic(object):
         user_doc =  {
             "type" : "user",
             "business_profile_state": user_json['business_profile_state'],
-            "created_at": user_json['created_at'],
+            "created_at": dateparser.parse(user_json['created_at']),
             "description": user_json['description'],
             "fast_followers_count":  user_json['fast_followers_count'],
             "favourites_count": user_json['favourites_count'],
@@ -51,7 +53,7 @@ class Elastic(object):
         tweet_doc = {
                 "type" : "tweet",
                 "url" : tweet_json['entities']["media"][0]["expanded_url"],
-                "created_at": tweet_json["created_at"],
+                "created_at": dateparser.parse(tweet_json["created_at"]),
                 "duration_millis": tweet_json["extended_entities"]["media"][0]["video_info"]["duration_millis"],
                 "variants": tweet_json["extended_entities"]["media"][0]["video_info"]['variants'],
                 "favorite_count":  tweet_json["favorite_count"],
