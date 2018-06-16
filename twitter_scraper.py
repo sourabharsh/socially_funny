@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 from termcolor import colored
 from elastic import Elastic 
 import traceback
-
+from urllib.parse import urlencode
 class Twitter_Scraper(object):
     
     def __init__(self):
@@ -17,20 +17,23 @@ class Twitter_Scraper(object):
         a method to get all the information for a given tweet id
     """
     
-    def get_tweet_ids(self, max_position = None):
+    def get_tweet_ids(self, query, max_position = None):
         
         url = "https://twitter.com/i/search/timeline/?"
         params = {
             'f'         :   'videos',
             'vertical'  :   "default",
-            'q'         :   'near:"India" since:2018-06-10 until:2018-06-11',
+            #'q'         :   'near:"India" since:2018-06-10 until:2018-06-11',
+            'q'         :    query,
             'src'       :   'typd'
         } 
-        
+        params_encoded  = urlencode(params)
+        #print("Encoded query", params_encoded)
         headers = {
             'authority' :   'twitter.com',
             'method'    :   'GET',
-            'path'      :   "/i/search/timeline?f=videos&vertical=default&q=near%3A%22India%22%20since%3A2018-06-10%20until%3A2018-06-11&src=typd",  
+            #'path'      :   "/i/search/timeline?f=videos&vertical=default&q=near%3A%22India%22%20since%3A2018-06-10%20until%3A2018-06-11&src=typd",  
+            'path'      :   "/i/search/timeline?%s"%params_encoded,  
             'scheme'    :   'https',
             'accept'    :   "application/json, text/javascript, */*; q=0.01",
             'accept-encoding'   :   'gzip, deflate, br',
@@ -38,7 +41,8 @@ class Twitter_Scraper(object):
             'cache-control'     :   'no-cache',
             'dnt'               :   '1',
             'pragma'            :   'no-cache',
-            'referer'           :   "https://twitter.com/i/search/timeline?f=videos&vertical=default&q=near%3A%22India%22%20since%3A2018-06-10%20until%3A2018-06-11&src=typd",
+            #'referer'           :   "https://twitter.com/i/search/timeline?f=videos&vertical=default&q=near%3A%22India%22%20since%3A2018-06-10%20until%3A2018-06-11&src=typd",
+            'referer'           :   "https://twitter.com/i/search/timeline?%s"%params_encoded,
             'user-agent'        :   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36",
             'x-requested-with'  :   'XMLHttpRequest',
         }
@@ -67,7 +71,7 @@ class Twitter_Scraper(object):
             
     
     
-    def main(self):
+    def main(self, query ):
         # Get guest ID & authorization value
         session = requests.Session()
 
@@ -86,23 +90,19 @@ class Twitter_Scraper(object):
         auth_token = self.auth_token(session)
         
         # Start scrolling through the twitter timeline pages
-        all_ids  =    set()
         max_position  = 'TWEET--'
-        #time_delay =  0
-        #time_error_delay = 0 
-        
         while True:
-            tweets,  min_position = self.get_tweet_ids(max_position= max_position)
+            tweets,  min_position = self.get_tweet_ids(query, max_position= max_position)
             
             # Old min_position becomes the new max-position
-            if tweets and min_position:
+            if len(tweets):
                 self.store_data(tweets, guest_id, auth_token, session,  "twitter", "tweet" )
                 max_position = min_position
+            else:
+                return 0
 
-                
     def store_data(self, tweets, guest_id, auth_token, session, index="index", data_type="type"):
             elastic = Elastic()
-            
             for tweet_id in tweets:
                 try:
                     tweet_json = self.tweet_details(tweet_id, tweets[tweet_id], guest_id, auth_token, session)  
@@ -111,16 +111,16 @@ class Twitter_Scraper(object):
                     try:
                         video_info = tweet_json["extended_entities"]["media"][0]["video_info"]
                     except KeyError as e:
-                        print("No video found in ", tweet_id)
+                        print(tweet_id, ":  No video found ", )
                         continue
-                    
+                        
                     user_json  = tweet_json.pop('user')      # separate user and tweet details
-                
                     elastic.store_user_data(user_json, index, data_type)
                     elastic.store_tweet(tweet_json, index, data_type)
-                    time.sleep(random.random()*5)
+                    time.sleep(random.random()*1)
+                    
                 except Exception as e:
-                    print("Error in handling %s :   %s"%(tweet_id, e))
+                    print("tweet %s:  Error in storing data. %s"%(tweet_id, e))
                     print(traceback.format_exc())
 
 
